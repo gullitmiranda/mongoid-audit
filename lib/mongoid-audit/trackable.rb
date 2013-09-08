@@ -10,6 +10,7 @@ module Mongoid::Audit
           :except         =>  [],
           :modifier_field =>  :modifier,
           :version_field  =>  :version,
+          :changes_method =>  :changes,
           :scope          =>  scope_name,
           :track_create   =>  false,
           :track_update   =>  true,
@@ -151,12 +152,15 @@ module Mongoid::Audit
       end
 
       def modified_attributes_for_update
+        nested_attribute_changes = history_trackable_options[:changes_method] ? self.send(history_trackable_options[:changes_method]) : {}
+        merged_changes = changes.merge!(nested_attribute_changes)
+
         @modified_attributes_for_update ||= if history_trackable_options[:on] == :all
-          changes.reject do |k, v|
+          merged_changes.reject do |k, v|
             history_trackable_options[:except].include?(k)
           end
         else
-          changes.reject do |k, v|
+          merged_changes.reject do |k, v|
             !history_trackable_options[:on].include?(k)
           end
 
